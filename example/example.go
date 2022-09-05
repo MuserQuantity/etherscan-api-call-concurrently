@@ -20,7 +20,7 @@ func main() {
 		params.Add("action", "eth_getCode")
 		params.Add("address", strconv.Itoa(rand.Int()))
 		go func(caller *core.EtherscanApiCaller, params url.Values) {
-			resp, err := caller.Request("https://api.etherscan.io/api", params)
+			resp, err := caller.Request("https://api.etherscan.io/api", params, true)
 			if err != nil {
 				log.Println(err)
 				return
