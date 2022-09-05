@@ -46,13 +46,13 @@ func (caller *EtherscanApiCaller) GetApiKey() (index int, apiKey string) {
 	return
 }
 
-func (caller *EtherscanApiCaller) Request(url string, params url.Values) (resp *http.Response, err error) {
+func (caller *EtherscanApiCaller) Request(url string, params url.Values, retry bool) (resp *http.Response, err error) {
 	index, apiKey := caller.GetApiKey()
 	caller.ApiCallLock[index].Lock()
 	if caller.ApiCallCount[index] == 5 {
 		var now = time.Now()
 		subDuration := now.Sub(caller.ApiCallTime[index])
-		if subDuration.Milliseconds() < 1000 {
+		if subDuration.Milliseconds() < 1200 {
 			time.Sleep(time.Second - subDuration)
 		}
 		caller.ApiCallCount[index] = 0
@@ -62,11 +62,12 @@ func (caller *EtherscanApiCaller) Request(url string, params url.Values) (resp *
 	}
 	params.Add("apikey", apiKey)
 	resp, err = http.Get(url + "?" + params.Encode())
-	if err != nil {
-		caller.ApiCallLock[index].Unlock()
-		return
-	}
 	caller.ApiCallCount[index]++
 	caller.ApiCallLock[index].Unlock()
+	if err != nil {
+		if retry {
+			return caller.Request(url, params, retry)
+		}
+	}
 	return
 }
